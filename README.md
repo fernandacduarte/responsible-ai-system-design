@@ -1,5 +1,10 @@
 # responsible-ai-system-design
 
+> **Fork notice.** This is a fork of
+> [IsabelaYabe/responsible-ai-system-design](https://github.com/IsabelaYabe/responsible-ai-system-design),
+> maintained here to develop additional modifications. Upstream changes can be
+> pulled from the original repository.
+
 Course project: an AI reading assistant that supports text comprehension with
 on-demand, context-grounded help — without spoiling what the reader hasn't reached.
 See `report.md` for the full write-up.
