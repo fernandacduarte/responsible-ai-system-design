@@ -52,14 +52,17 @@ _PREAMBLE = (
     'You are a reading companion for "{title}" by {author}. You are reading '
     "alongside the reader and only know what they have read so far — the "
     "passages provided are their knowledge up to this point. Never use outside "
-    "knowledge of this book's plot, and never reference or hint at events past "
-    "the provided passages. General world knowledge (vocabulary, history, "
-    "customs, literary conventions) is fine; book-specific content is not."
+    "knowledge of this document's content, and never reference or hint at details "
+    "past the provided passages. General world knowledge (vocabulary, history, "
+    "customs, literary conventions) is fine; document-specific content is not."
 )
 
 
-def _preamble() -> str:
-    return _PREAMBLE.format(title=config.BOOK_TITLE, author=config.BOOK_AUTHOR)
+def _preamble(title: str | None = None, author: str | None = None) -> str:
+    return _PREAMBLE.format(
+        title=(title or config.BOOK_TITLE).strip(),
+        author=(author or config.BOOK_AUTHOR).strip() or "Unknown author",
+    )
 
 
 def _parse_define(raw: str) -> tuple[str, list[dict]]:
@@ -94,7 +97,14 @@ def _parse_define(raw: str) -> tuple[str, list[dict]]:
     return meaning, out
 
 
-def _define(llm: LLMClient, index: EmbeddingIndex, span: str, pos: int | None):
+def _define(
+    llm: LLMClient,
+    index: EmbeddingIndex,
+    span: str,
+    pos: int | None,
+    title: str | None = None,
+    author: str | None = None,
+):
     # Find where the term actually appears (lexical substring) so the model sees the
     # real usage — embedding kNN on a single word often misses the literal occurrence.
     # Fall back to embedding similarity when there is no in-bounds literal match.
@@ -102,7 +112,7 @@ def _define(llm: LLMClient, index: EmbeddingIndex, span: str, pos: int | None):
         index, span, pos, top_k=4
     )
     system = (
-        _preamble() + "\n\n"
+        _preamble(title, author) + "\n\n"
         "The reader selected some text and wants help understanding it. Produce TWO things:\n"
         "1. MEANING — a brief plain-language explanation of what the selected text means "
         "as a whole, in its context (1–2 sentences). Use the passages below for context; "
@@ -128,9 +138,14 @@ def _define(llm: LLMClient, index: EmbeddingIndex, span: str, pos: int | None):
     return json.dumps({"meaning": meaning, "definitions": definitions}), ctx, None
 
 
-def _paraphrase(llm: LLMClient, span: str):
+def _paraphrase(
+    llm: LLMClient,
+    span: str,
+    title: str | None = None,
+    author: str | None = None,
+):
     system = (
-        _preamble() + "\n\n"
+        _preamble(title, author) + "\n\n"
         "The reader selected a passage and wants it restated in simpler, clearer "
         "English. Paraphrase ONLY the selected passage — keep the same meaning and "
         "tense, do not add information, do not explain what happens next, do not "
@@ -141,14 +156,21 @@ def _paraphrase(llm: LLMClient, span: str):
     return llm.complete(system, user), [], None
 
 
-def _contextualize(llm: LLMClient, index: EmbeddingIndex, span: str, pos: int | None):
+def _contextualize(
+    llm: LLMClient,
+    index: EmbeddingIndex,
+    span: str,
+    pos: int | None,
+    title: str | None = None,
+    author: str | None = None,
+):
     ctx = retrieve_embedding(index, span, pos, top_k=config.TOP_K)
     system = (
-        _preamble() + "\n\n"
+        _preamble(title, author) + "\n\n"
         "The reader selected a passage and wants historical, cultural, or thematic "
         "context for it. Lead with general world knowledge (the period, customs, "
-        "references). For anything specific to this book's story or characters, use "
-        "ONLY the passages below — do not reference how a theme or situation "
+        "references). For anything specific to this document's story, people, or "
+        "claims, use ONLY the passages below — do not reference how a theme or situation "
         "develops later. Keep it short and concrete."
     )
     user = (
@@ -160,7 +182,14 @@ def _contextualize(llm: LLMClient, index: EmbeddingIndex, span: str, pos: int | 
     return llm.complete(system, user), ctx, None
 
 
-def _recall(llm: LLMClient, index: EmbeddingIndex, span: str, pos: int | None):
+def _recall(
+    llm: LLMClient,
+    index: EmbeddingIndex,
+    span: str,
+    pos: int | None,
+    title: str | None = None,
+    author: str | None = None,
+):
     # The reader highlighted a name/subject; recover its earlier mentions.
     # A short selection IS the entity — use it verbatim. extract_entity is for
     # pulling a name out of a longer phrase, and (being question-oriented) it can
@@ -174,13 +203,14 @@ def _recall(llm: LLMClient, index: EmbeddingIndex, span: str, pos: int | None):
             entity = extracted
     hits = recall_retrieve(index.chunks, entity, reader_pos=pos)
     if not hits:
-        upto = "the whole book" if pos is None else f"{config.BOOK_TITLE} chapter {pos}"
+        doc_title = (title or config.BOOK_TITLE).strip()
+        upto = "the whole document" if pos is None else f"{doc_title} position {pos}"
         msg = f'Nothing about "{entity}" has come up yet in what you\'ve read (up to {upto}).'
         return msg, [], entity
     system = (
-        _preamble() + "\n\n"
+        _preamble(title, author) + "\n\n"
         'The reader wants to remember what they have already encountered about a '
-        'subject earlier in the book ("who was this again?"). Using ONLY the '
+        'subject earlier in the document ("who was this again?"). Using ONLY the '
         "passages below — every earlier mention within what they have read — "
         "summarise what has been shown about it, in chronological order (earliest "
         "to latest). Cite chunk_ids. Do not add anything beyond these passages and "
@@ -201,6 +231,8 @@ def _dispatch(
     span: str,
     intention: str,
     pos: int | None,
+    title: str | None = None,
+    author: str | None = None,
 ):
     """Return (answer, chunks, entity) for a non-empty span. Raises on unknown.
 
@@ -209,13 +241,13 @@ def _dispatch(
     them with `[c.chapter_index for c in chunks]`.
     """
     if intention == "paraphrase":
-        return _paraphrase(llm, span)
+        return _paraphrase(llm, span, title, author)
     if intention == "define":
-        return _define(llm, index, span, pos)
+        return _define(llm, index, span, pos, title, author)
     if intention == "contextualize":
-        return _contextualize(llm, index, span, pos)
+        return _contextualize(llm, index, span, pos, title, author)
     if intention == "recall":
-        return _recall(llm, index, span, pos)
+        return _recall(llm, index, span, pos, title, author)
     raise ValueError(f"Unknown intention {intention!r}; expected one of {INTENTIONS}")
 
 
@@ -225,13 +257,15 @@ def respond(
     selected_text: str,
     intention: str,
     reader_position: int | None = config.READER_POSITION,
+    title: str | None = None,
+    author: str | None = None,
 ) -> str:
     """Route a (selection, intention, position) triple to a bounded response."""
     intention = (intention or "").lower().strip()
     span = (selected_text or "").strip()
     if not span:
         return "Select some text first, then choose what you'd like."
-    return _dispatch(llm, index, span, intention, reader_position)[0]
+    return _dispatch(llm, index, span, intention, reader_position, title, author)[0]
 
 
 def respond_detailed(
@@ -240,6 +274,8 @@ def respond_detailed(
     selected_text: str,
     intention: str,
     reader_position: int | None = config.READER_POSITION,
+    title: str | None = None,
+    author: str | None = None,
 ) -> dict:
     """Same dispatch as respond(), but expose {answer, chapters, entity}.
 
@@ -253,7 +289,7 @@ def respond_detailed(
     if not span:
         return {"answer": "Select some text first, then choose what you'd like.",
                 "chapters": [], "entity": None}
-    answer, chunks, entity = _dispatch(llm, index, span, intention, reader_position)
+    answer, chunks, entity = _dispatch(llm, index, span, intention, reader_position, title, author)
     return {"answer": answer, "chapters": [c.chapter_index for c in chunks], "entity": entity}
 
 
@@ -263,6 +299,8 @@ def respond_with_evidence(
     selected_text: str,
     intention: str,
     reader_position: int | None = config.READER_POSITION,
+    title: str | None = None,
+    author: str | None = None,
 ) -> dict:
     """Same dispatch as respond(), but also return the retrieved grounding chunks.
 
@@ -277,6 +315,8 @@ def respond_with_evidence(
     if not span:
         return {"answer": "Select some text first, then choose what you'd like.",
                 "chunks": [], "chapters": [], "entity": None}
-    answer, chunks, entity = _dispatch(llm, index, span, intention, reader_position)
+    answer, chunks, entity = _dispatch(
+        llm, index, span, intention, reader_position, title, author
+    )
     return {"answer": answer, "chunks": chunks,
             "chapters": [c.chapter_index for c in chunks], "entity": entity}

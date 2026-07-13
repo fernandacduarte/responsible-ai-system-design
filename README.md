@@ -38,7 +38,10 @@ details in `antispoiler/README.md`.
 The demo (`app.py` + `static/index.html`) is the reading assistant UI: select a
 passage, click a feature (Define / Paraphrase / Contextualize / Recall), and the
 generated answer is run through the LLM-3 validator and shown as Valid / Hedged /
-Not reliable. Needs `ANTHROPIC_API_KEY` in the repo-root `.env`.
+Not reliable. The reader pane can switch between the extracted text view and a
+PDF view; opening a local PDF makes that PDF the active in-memory document and
+uses page number as the reader-position axis. Needs `ANTHROPIC_API_KEY` in the
+repo-root `.env`.
 
 ```bash
 conda run -n antispoiler-arm uvicorn app:app --port 8000
@@ -48,7 +51,9 @@ conda run -n antispoiler-arm uvicorn app:app --port 8000
 Launch from the same env you installed into (`antispoiler-arm`) — running from a
 different Python is the usual cause of the `Dictionary: UNAVAILABLE` message below.
 The first request is slow (it downloads the embedding model and indexes the book
-once); the Define feature also needs the WordNet corpus (next section).
+once); opening a PDF also builds a temporary index for that document. The Define
+feature needs the WordNet corpus (next section). Scanned/OCR-only PDFs are not
+supported in this demo because the backend requires extractable text.
 
 ### Dev mode — cheap models via OpenRouter
 

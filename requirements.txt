@@ -15,3 +15,4 @@ nltk>=3.8                # WordNet dictionary grounding for the definition valid
 # Interactive demo (app.py) — not needed for the eval/notebook.
 fastapi>=0.110
 uvicorn>=0.29
+pypdf>=4.2              # local PDF text extraction for the interactive demo

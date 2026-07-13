@@ -3,29 +3,82 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Anti-spoiler reading companion — demo</title>
+<title>Anti-spoiler reading companion - demo</title>
 <style>
   :root {
     --bg:#faf8f3; --panel:#fff; --line:#e2ddd2; --ink:#2b2b2b; --muted:#777; --accent:#5b7c99;
-    /* validation palette — mirrors the design record */
     --valid:#1F7A52; --valid-bg:#E6F2EC; --valid-line:#BCDFCD;
     --hedge:#9C6B12; --hedge-bg:#FBF0DA; --hedge-line:#EAD3A6;
-    --bad:#B23A2F;   --bad-bg:#F8E6E3;   --bad-line:#EBC6C0;
-    --unv:#46505F;   --unv-bg:#EEF1F5;   --unv-line:#CED5DF;
+    --bad:#B23A2F; --bad-bg:#F8E6E3; --bad-line:#EBC6C0;
+    --unv:#46505F; --unv-bg:#EEF1F5; --unv-line:#CED5DF;
   }
-  * { box-sizing: border-box; }
-  body { margin:0; font-family: Georgia, "Times New Roman", serif; color:var(--ink); background:var(--bg); }
-  .layout { display:flex; height:100vh; }
-  /* Reading pane */
-  #reader { flex:1; overflow-y:auto; padding:40px 56px; }
+  * { box-sizing:border-box; }
+  [hidden] { display:none !important; }
+  body { margin:0; font-family:Georgia, "Times New Roman", serif; color:var(--ink); background:var(--bg); }
+  .layout { display:flex; height:100vh; min-width:920px; }
+
+  #reader { flex:1; overflow-y:auto; padding:32px 48px 42px; }
+  .reader-head { display:flex; align-items:flex-start; justify-content:space-between; gap:24px; margin-bottom:22px; }
   #reader h1 { font-size:22px; margin:0 0 4px; }
-  #reader .byline { color:var(--muted); font-style:italic; margin-bottom:24px; }
+  #reader .byline { min-height:20px; color:var(--muted); font-style:italic; }
+  .reader-tools { display:flex; align-items:center; justify-content:flex-end; gap:10px; flex-wrap:wrap; font-family:system-ui, sans-serif; }
+  .view-toggle { display:inline-grid; grid-template-columns:1fr 1fr; border:1px solid var(--line); border-radius:8px; overflow:hidden; background:#fff; }
+  .view-toggle button { min-width:68px; padding:8px 12px; border:0; background:#fff; color:var(--muted); cursor:pointer; font-weight:700; }
+  .view-toggle button.active { background:var(--accent); color:#fff; }
+  .tool-btn, .file-btn {
+    display:inline-flex; align-items:center; justify-content:center; min-height:36px; padding:8px 12px;
+    border:1px solid var(--accent); border-radius:8px; background:#fff; color:var(--accent);
+    font:700 13px system-ui, sans-serif; cursor:pointer;
+  }
+  .tool-btn:hover, .file-btn:hover { background:var(--accent); color:#fff; }
+  .tool-btn:disabled { opacity:.5; cursor:not-allowed; }
+  .file-btn input { display:none; }
+  .status { width:100%; color:var(--muted); font:12px system-ui, sans-serif; text-align:right; }
+  .status.error { color:var(--bad); }
+
   #book h2 { font-size:16px; letter-spacing:.04em; text-transform:uppercase; color:var(--accent); margin:32px 0 10px; }
   #book p { line-height:1.7; margin:0 0 14px; max-width:62ch; }
-  #book ::selection { background:#f6e9a0; }
-  /* Sidebar */
+  #book ::selection { background:rgba(246,233,160,.58); }
+  .textLayer ::selection { background:rgba(246,233,160,.58); color:transparent; }
+  .empty-state { color:var(--muted); font:14px system-ui, sans-serif; padding:22px 0; }
+
+  #pdfView { font-family:system-ui, sans-serif; }
+  .pdf-toolbar {
+    position:sticky; top:0; z-index:2; display:flex; align-items:center; justify-content:space-between;
+    gap:12px; margin-bottom:16px; padding:8px 10px; border:1px solid var(--line); border-radius:8px;
+    background:var(--panel); box-shadow:0 2px 8px rgba(30,30,30,.06);
+  }
+  .pdf-toolbar-group { display:flex; align-items:center; gap:6px; }
+  .pdf-icon-btn {
+    width:32px; height:32px; padding:0; border:1px solid var(--line); border-radius:6px;
+    background:#fff; color:var(--accent); font:700 18px/1 system-ui, sans-serif; cursor:pointer;
+  }
+  .pdf-icon-btn:hover:not(:disabled) { border-color:var(--accent); background:var(--accent); color:#fff; }
+  .pdf-icon-btn:disabled { opacity:.45; cursor:not-allowed; }
+  .pdf-page-control { color:var(--muted); font:13px system-ui, sans-serif; white-space:nowrap; }
+  .pdf-page-input {
+    width:46px; height:32px; padding:4px 6px; border:1px solid var(--line); border-radius:6px;
+    color:var(--ink); font:600 13px system-ui, sans-serif; text-align:center;
+  }
+  .pdf-zoom { min-width:44px; color:var(--muted); font:13px system-ui, sans-serif; text-align:center; }
+  #pdfPages { display:flex; flex-direction:column; align-items:stretch; overflow:auto; padding:4px 0 24px; }
+  .pdf-page { min-width:100%; display:flex; flex-direction:column; align-items:center; gap:7px; }
+  .pdf-sheet { position:relative; background:#fff; border:1px solid var(--line); box-shadow:0 5px 18px rgba(30,30,30,.10); }
+  .pdf-sheet canvas { display:block; width:100%; height:100%; }
+  .pdf-label { color:var(--muted); font-size:12px; }
+  .textLayer {
+    position:absolute; inset:0; overflow:hidden; opacity:1; line-height:1; text-align:initial;
+    transform-origin:0 0; forced-color-adjust:none;
+  }
+  .textLayer span, .textLayer br {
+    color:transparent; position:absolute; white-space:pre; cursor:text; transform-origin:0% 0%;
+  }
+  .textLayer .fallback-text {
+    position:static; display:block; padding:14px; color:transparent; white-space:pre-wrap; line-height:1.45;
+  }
+
   #panel { width:400px; min-width:400px; border-left:1px solid var(--line); background:var(--panel);
-           display:flex; flex-direction:column; padding:24px; overflow-y:auto; font-family: system-ui, sans-serif; }
+           display:flex; flex-direction:column; padding:24px; overflow-y:auto; font-family:system-ui, sans-serif; }
   #panel h2 { font-size:13px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin:0 0 8px; }
   .pos { margin-bottom:20px; }
   .pos input[type=range] { width:100%; }
@@ -43,7 +96,6 @@
   .answer { border-top:1px solid var(--line); padding-top:14px; font-size:14.5px; line-height:1.6; }
   .answer .tag { display:inline-block; font-size:11px; text-transform:uppercase; letter-spacing:.05em;
                  background:#eef2f5; color:var(--accent); padding:2px 8px; border-radius:10px; margin-bottom:8px; }
-  /* Rendered markdown from the model — keep headings modest in the narrow panel. */
   .answer .md > :first-child { margin-top:0; }
   .answer .md h1, .answer .md h2, .answer .md h3 { font-size:14.5px; font-weight:700; margin:14px 0 4px; }
   .answer .md p { margin:0 0 10px; }
@@ -51,7 +103,6 @@
   .answer .md li { margin:2px 0; }
   .answer .md code { background:#eef2f5; padding:1px 4px; border-radius:4px; font-size:13px; }
   .answer .md strong { font-weight:700; }
-  /* Define renders an overall meaning + a word list (dl) instead of prose. */
   .answer .md .def-meaning { margin:0 0 12px; }
   .answer .md .def-label { font-size:11px; font-weight:700; text-transform:uppercase;
     letter-spacing:.05em; color:var(--muted); margin:0 0 4px; }
@@ -61,15 +112,12 @@
   .answer .md .defs dd { margin:0; color:var(--ink-soft, var(--ink)); }
   .muted { color:var(--muted); }
 
-  /* ── Spinner (shown during the blocking generate+validate call) ── */
   .thinking { display:flex; align-items:center; gap:10px; color:var(--muted); font-size:14px; }
   .spinner { width:16px; height:16px; border:2px solid #d9d2c4; border-top-color:var(--accent);
              border-radius:50%; animation:spin .8s linear infinite; flex:none; }
   @keyframes spin { to { transform:rotate(360deg); } }
   @media (prefers-reduced-motion:reduce) { .spinner { animation:none; } }
 
-  /* ── Validation block ── */
-  /* Divider sets the validator result apart from the answer above it. */
   .validation { margin-top:18px; padding-top:16px; border-top:2px solid var(--line); }
   .vbanner { display:flex; flex-direction:column; gap:7px; padding:10px 12px; border-radius:9px; border:1px solid; }
   .voverline { font-size:10px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; opacity:.72; }
@@ -77,7 +125,6 @@
   .vbanner .vdot { width:9px; height:9px; border-radius:50%; flex:none; }
   .vbanner .vmeta { position:relative; margin-left:auto; font-weight:500; font-size:11.5px; opacity:.85;
                     letter-spacing:0; cursor:help; border-bottom:1px dotted currentColor; }
-  /* Custom tooltip — native title is too slow; this shows almost instantly. */
   .vtip { position:absolute; top:calc(100% + 8px); right:0; z-index:30; width:264px; max-width:78vw;
           background:var(--ink); color:#fff; font-weight:400; font-size:11.5px; line-height:1.5;
           letter-spacing:0; text-transform:none; padding:9px 11px; border-radius:8px;
@@ -93,27 +140,22 @@
   .vbanner.v-valid .vdot { background:var(--valid); }
   .vbanner.v-hedge { background:var(--hedge-bg); border-color:var(--hedge-line); color:var(--hedge); }
   .vbanner.v-hedge .vdot { background:var(--hedge); }
-  .vbanner.v-bad   { background:var(--bad-bg);   border-color:var(--bad-line);   color:var(--bad); }
-  .vbanner.v-bad   .vdot { background:var(--bad); }
-  /* Message sits inside the coloured box, under the state label. */
+  .vbanner.v-bad { background:var(--bad-bg); border-color:var(--bad-line); color:var(--bad); }
+  .vbanner.v-bad .vdot { background:var(--bad); }
   .vmessage { font-size:12.5px; color:var(--ink); opacity:.9; }
-
-  .vretry { width: 100%; display:inline-flex; align-items:center; justify-content: center; gap:6px; align-self:flex-start; margin-top:3px;
+  .vretry { width:100%; display:inline-flex; align-items:center; justify-content:center; gap:6px; align-self:flex-start; margin-top:3px;
             padding:7px 14px; border:1px solid var(--bad); background:#fff; color:var(--bad);
             border-radius:8px; font-family:inherit; font-size:13px; font-weight:600;
             opacity:.55; cursor:not-allowed; }
   .vretry-note { font-weight:400; font-size:11.5px; opacity:.85; }
-
   .vnote { margin-top:12px; padding:9px 12px; border:1px solid var(--line); border-left:3px solid var(--muted);
            background:#fbfaf7; border-radius:8px; font-size:12.5px; color:var(--muted); }
-
-  /* validation path (§7) */
   .vpath { margin-top:12px; font-size:13px; }
   .vpath > summary { cursor:pointer; font-weight:600; color:var(--accent); font-size:12.5px;
                      list-style:none; padding:4px 0; }
   .vpath > summary::-webkit-details-marker { display:none; }
-  .vpath > summary::before { content:"▸ "; }
-  .vpath[open] > summary::before { content:"▾ "; }
+  .vpath > summary::before { content:"> "; }
+  .vpath[open] > summary::before { content:"v "; }
   .vclaims { list-style:none; margin:8px 0 0; padding:0; }
   .vclaim { border:1px solid var(--line); border-radius:8px; padding:8px 10px; margin:0 0 7px; background:#fff; }
   .vclaim .chead { display:flex; align-items:center; gap:8px; }
@@ -121,13 +163,12 @@
            padding:2px 7px; border-radius:6px; border:1px solid; white-space:nowrap; }
   .vchip.c-sup { background:var(--valid-bg); border-color:var(--valid-line); color:var(--valid); }
   .vchip.c-par { background:var(--hedge-bg); border-color:var(--hedge-line); color:var(--hedge); }
-  .vchip.c-con { background:var(--bad-bg);   border-color:var(--bad-line);   color:var(--bad); }
-  .vchip.c-unv { background:var(--unv-bg);   border-color:var(--unv-line);   color:var(--unv); }
+  .vchip.c-con { background:var(--bad-bg); border-color:var(--bad-line); color:var(--bad); }
+  .vchip.c-unv { background:var(--unv-bg); border-color:var(--unv-line); color:var(--unv); }
   .vclaim .cconf { margin-left:auto; font-size:11px; color:var(--muted); }
   .vclaim .cground { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
   .vclaim .ctext { margin:5px 0 0; font-size:13px; color:var(--ink); }
   .vclaim .creason { margin:4px 0 0; font-size:12px; color:var(--muted); font-style:italic; }
-
   .vsources { margin-top:6px; }
   .vsources > summary { cursor:pointer; font-size:12px; color:var(--accent); padding:3px 0; }
   .vsource { border:1px solid var(--line); border-radius:7px; padding:7px 9px; margin:6px 0 0; background:#fbfaf7; }
@@ -138,28 +179,62 @@
 <body>
 <div class="layout">
   <main id="reader">
-    <h1 id="title">…</h1>
-    <div class="byline" id="byline"></div>
-    <div id="book"><p class="muted">Loading…</p></div>
+    <div class="reader-head">
+      <div>
+        <h1 id="title">...</h1>
+        <div class="byline" id="byline"></div>
+      </div>
+      <div class="reader-tools">
+        <div class="view-toggle" role="group" aria-label="Reader view">
+          <button type="button" id="textViewBtn" class="active">Text</button>
+          <button type="button" id="pdfViewBtn">PDF</button>
+        </div>
+        <label class="file-btn">Open PDF<input type="file" id="pdfFile" accept="application/pdf" /></label>
+        <button type="button" class="tool-btn" id="resetDoc" hidden>Reset</button>
+        <div class="status" id="docStatus"></div>
+      </div>
+    </div>
+
+    <section id="textView">
+      <div id="book"><p class="muted">Loading...</p></div>
+    </section>
+    <section id="pdfView" hidden>
+      <div id="pdfEmpty" class="empty-state">No PDF loaded.</div>
+      <div class="pdf-toolbar" id="pdfToolbar" hidden aria-label="PDF controls">
+        <div class="pdf-toolbar-group">
+          <button type="button" class="pdf-icon-btn" id="pdfPrev" title="Previous page" aria-label="Previous page">&lt;</button>
+          <label class="pdf-page-control" for="pdfPage">Page</label>
+          <input class="pdf-page-input" id="pdfPage" type="number" min="1" value="1" inputmode="numeric" aria-label="Current page" />
+          <span class="pdf-page-control" id="pdfPageCount">of 1</span>
+          <button type="button" class="pdf-icon-btn" id="pdfNext" title="Next page" aria-label="Next page">&gt;</button>
+        </div>
+        <div class="pdf-toolbar-group">
+          <button type="button" class="pdf-icon-btn" id="pdfZoomOut" title="Zoom out" aria-label="Zoom out">-</button>
+          <span class="pdf-zoom" id="pdfZoom">100%</span>
+          <button type="button" class="pdf-icon-btn" id="pdfZoomIn" title="Zoom in" aria-label="Zoom in">+</button>
+        </div>
+      </div>
+      <div id="pdfPages"></div>
+    </section>
   </main>
 
   <aside id="panel">
     <div class="pos">
       <h2>Reading position</h2>
-      <div>Through chapter <span class="val" id="posVal">–</span> <span class="muted" id="posMax"></span></div>
+      <div>Through <span id="posUnit">chapter</span> <span class="val" id="posVal">-</span> <span class="muted" id="posMax"></span></div>
       <input type="range" id="pos" min="1" max="1" value="1" />
-      <div class="muted" style="font-size:12px;margin-top:4px;">You can only select text up to here.</div>
+      <div class="muted" id="posHint" style="font-size:12px;margin-top:4px;">You can only select text up to this chapter.</div>
     </div>
 
     <h2>Selected text</h2>
-    <div class="selbox empty" id="sel">Highlight a word or passage in the text…</div>
+    <div class="selbox empty" id="sel">Highlight a word or passage in the text...</div>
 
     <h2>What would you like?</h2>
     <div class="acts">
-      <button data-intent="define" disabled>Define</button>
-      <button data-intent="paraphrase" disabled>Paraphrase</button>
-      <button data-intent="contextualize" disabled>Contextualize</button>
-      <button data-intent="recall" disabled>Recall</button>
+      <button type="button" data-intent="define" disabled>Define</button>
+      <button type="button" data-intent="paraphrase" disabled>Paraphrase</button>
+      <button type="button" data-intent="contextualize" disabled>Contextualize</button>
+      <button type="button" data-intent="recall" disabled>Recall</button>
     </div>
 
     <div class="answer" id="answer"><span class="muted">The assistant's reply will appear here.</span></div>
@@ -167,19 +242,36 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script>
 const $ = (id) => document.getElementById(id);
+const PDFJS_VERSION = "3.11.174";
+
+let appConfig = null;
 let selectedText = "";
 let spinnerTimer = null;
+let activeView = "text";
+let pdfDoc = null;
+let pdfObjectUrl = null;
+let pdfRenderToken = 0;
+let resizeTimer = null;
+let currentPdfPage = 1;
+let pdfZoom = 1;
+const PDF_ZOOM_MIN = 0.5;
+const PDF_ZOOM_MAX = 2;
+const PDF_ZOOM_STEP = 0.25;
 
-// Verdict label -> css modifier for the per-claim chips.
+if (window.pdfjsLib) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    `https://cdn.jsdelivr.net/npm/pdfjs-dist@${PDFJS_VERSION}/build/pdf.worker.min.js`;
+}
+
 const VCHIP = {
   "Supported": "c-sup",
   "Partially supported": "c-par",
   "Contradicted": "c-con",
   "Unverifiable": "c-unv",
 };
-// UI state -> banner modifier.
 const VBANNER = { "Valid": "v-valid", "Hedged": "v-hedge", "Not reliable": "v-bad" };
 
 function esc(s) {
@@ -187,13 +279,22 @@ function esc(s) {
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
 const fmtConf = (c) => (c === null || c === undefined) ? "n/a" : Number(c).toFixed(2);
+const unitLabel = () => appConfig?.position_unit || "chapter";
 
-// Define returns structured JSON ({"meaning": "...", "definitions":[{word,definition}]});
-// render the overall meaning, then the word list.
+function setStatus(message, isError = false) {
+  const status = $("docStatus");
+  status.textContent = message || "";
+  status.classList.toggle("error", Boolean(isError));
+}
+
+function resetAnswer() {
+  $("answer").innerHTML = '<span class="muted">The assistant\'s reply will appear here.</span>';
+}
+
 function renderDefinitions(el, answerJson) {
   let obj = null;
   try { obj = JSON.parse(answerJson); } catch (e) {}
-  if (!obj || typeof obj !== "object") {       // not JSON (e.g. a generation-error message)
+  if (!obj || typeof obj !== "object") {
     el.innerHTML = `<p>${esc(answerJson)}</p>`;
     return;
   }
@@ -203,36 +304,55 @@ function renderDefinitions(el, answerJson) {
   if (meaning) html += `<p class="def-meaning">${esc(meaning)}</p>`;
   if (defs.length) {
     html += '<div class="def-label">Key words</div><dl class="defs">';
-    for (const d of defs) {
-      html += `<dt>${esc(d.word)}</dt><dd>${esc(d.definition)}</dd>`;
-    }
+    for (const d of defs) html += `<dt>${esc(d.word)}</dt><dd>${esc(d.definition)}</dd>`;
     html += "</dl>";
   }
   el.innerHTML = html || '<p class="muted">Nothing to define here.</p>';
 }
 
-async function loadConfig() {
-  const c = await (await fetch("/config")).json();
-  $("title").textContent = c.title;
-  $("byline").textContent = "by " + c.author;
+function applyConfig(c) {
+  appConfig = c;
+  $("title").textContent = c.title || "Untitled document";
+  $("byline").textContent = c.author ? "by " + c.author : (c.source === "pdf" ? "PDF document" : "");
+  $("resetDoc").hidden = c.source !== "pdf";
+
   const pos = $("pos");
-  pos.max = c.max_chapter;
-  pos.value = c.default_position;
-  $("posMax").textContent = "of " + c.max_chapter;
+  pos.max = c.max_position || c.max_chapter || 1;
+  pos.value = Math.max(1, Math.min(c.default_position || 1, pos.max));
+  $("posUnit").textContent = unitLabel();
+  $("posVal").textContent = pos.value;
+  $("posMax").textContent = "of " + pos.max;
+  $("posHint").textContent = `You can only select text up to this ${unitLabel()}.`;
+  updatePdfToolbar();
+}
+
+async function refreshConfig() {
+  const res = await fetch("/config");
+  const c = await res.json();
+  if (!res.ok) throw new Error(c.error || "Could not load configuration");
+  applyConfig(c);
   return c;
 }
 
-async function loadBook() {
+async function loadText() {
+  if (!appConfig) return;
   const upto = $("pos").value;
   $("posVal").textContent = upto;
-  const data = await (await fetch("/book?upto=" + upto)).json();
+  const res = await fetch("/document/text?upto=" + encodeURIComponent(upto));
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Could not load text");
   const book = $("book");
   book.innerHTML = "";
-  for (const ch of data.chapters) {
+  const sections = data.sections || data.chapters || [];
+  if (!sections.length) {
+    book.innerHTML = '<p class="muted">No text available for this position.</p>';
+    return;
+  }
+  for (const section of sections) {
     const h = document.createElement("h2");
-    h.textContent = ch.label;
+    h.textContent = section.label;
     book.appendChild(h);
-    for (const para of ch.paragraphs) {
+    for (const para of section.paragraphs) {
       const p = document.createElement("p");
       p.textContent = para;
       book.appendChild(p);
@@ -241,29 +361,36 @@ async function loadBook() {
 }
 
 function setSelection(text) {
-  selectedText = text.trim();
+  selectedText = text.replace(/\s+/g, " ").trim();
   const sel = $("sel");
   const has = selectedText.length > 0;
-  sel.textContent = has ? selectedText : "Highlight a word or passage in the text…";
+  sel.textContent = has ? selectedText : "Highlight a word or passage in the text...";
   sel.classList.toggle("empty", !has);
   document.querySelectorAll(".acts button").forEach((b) => (b.disabled = !has));
 }
 
-// ── spinner: a small rotating message so the blocking generate+validate call
-//    feels alive (validation adds real latency: 1 decompose + N per-claim judge calls).
+function captureSelection(container) {
+  const selection = window.getSelection();
+  if (!selection || selection.rangeCount === 0) return;
+  const anchor = selection.anchorNode;
+  const focus = selection.focusNode;
+  if ((!anchor || !container.contains(anchor)) && (!focus || !container.contains(focus))) return;
+  const text = selection.toString();
+  if (text.trim()) setSelection(text);
+}
+
 function startSpinner() {
   const msgs = [
-    "Reading the passages you've read…",
-    "Drafting an answer…",
-    "Breaking it into checkable claims…",
-    "Checking each claim against the text…",
+    "Reading the passages you've read...",
+    "Drafting an answer...",
+    "Breaking it into checkable claims...",
+    "Checking each claim against the text...",
   ];
   let i = 0;
   const answer = $("answer");
   const paint = () =>
     (answer.innerHTML = '<div class="thinking"><span class="spinner"></span><span>' + esc(msgs[i]) + "</span></div>");
   paint();
-  // Advance through the messages once, then hold on the last one (don't loop).
   spinnerTimer = setInterval(() => {
     if (i < msgs.length - 1) { i++; paint(); }
     else { clearInterval(spinnerTimer); spinnerTimer = null; }
@@ -273,18 +400,17 @@ function stopSpinner() {
   if (spinnerTimer) { clearInterval(spinnerTimer); spinnerTimer = null; }
 }
 
-// ── render the §7 validation path: evidence -> claims -> per-claim comparison -> verdict
 function renderValidation(v) {
   if (!v) return "";
   if (!v.enabled) {
     return '<div class="vnote">' + esc(v.note || "Validation not available for this response.") + "</div>";
   }
   const cls = VBANNER[v.ui_state] || "v-hedge";
-  const meta = `${v.n_claims} claim${v.n_claims === 1 ? "" : "s"} · conf ${fmtConf(v.answer_confidence)} · τ ${v.conf_threshold}`;
+  const meta = `${v.n_claims} claim${v.n_claims === 1 ? "" : "s"} - conf ${fmtConf(v.answer_confidence)} - tau ${v.conf_threshold}`;
   const metaTip =
-    `Claims checked: ${v.n_claims}.  ` +
-    `conf ${fmtConf(v.answer_confidence)} = the validator's confidence (0–1) in the claim that drove this verdict.  ` +
-    `τ ${v.conf_threshold} = the commit threshold: below it the answer is shown as "Needs checking" instead of Valid or Not reliable.`;
+    `Claims checked: ${v.n_claims}. ` +
+    `conf ${fmtConf(v.answer_confidence)} = the validator's confidence (0-1) in the claim that drove this verdict. ` +
+    `tau ${v.conf_threshold} = the commit threshold: below it the answer is shown as "Needs checking" instead of Valid or Not reliable.`;
 
   let html = '<div class="validation">';
   html += `<div class="vbanner ${cls}">`;
@@ -292,14 +418,12 @@ function renderValidation(v) {
   html += `<div class="vbanner-head"><span class="vdot"></span><span>${esc(v.banner)}</span>`;
   html += `<span class="vmeta" tabindex="0">${esc(meta)}<span class="vtip" role="tooltip">${esc(metaTip)}</span></span></div>`;
   html += `<div class="vmessage">${esc(v.message)}</div>`;
-  // Not reliable -> retry sits inside the box; not built yet, shown disabled.
   if (v.ui_state === "Not reliable") {
     html += '<button class="vretry" disabled>Try again <span class="vretry-note">(in progress)</span></button>';
   }
   html += "</div>";
 
-  // The auditable validation path (§7) — collapsed by default; the reader expands to audit.
-  html += `<details class="vpath"><summary>How this was checked</summary>`;
+  html += '<details class="vpath"><summary>How this was checked</summary>';
   html += '<ol class="vclaims">';
   for (const c of (v.claims || [])) {
     const chip = VCHIP[c.verdict] || "c-unv";
@@ -315,13 +439,12 @@ function renderValidation(v) {
   }
   html += "</ol>";
 
-  // Evidence selected — the retrieved, position-bounded passages the judge grounded on.
   const ev = v.evidence || [];
   if (ev.length) {
-    html += `<details class="vsources"><summary>Evidence — ${ev.length} passage${ev.length === 1 ? "" : "s"} the reader has read</summary>`;
+    html += `<details class="vsources"><summary>Evidence - ${ev.length} passage${ev.length === 1 ? "" : "s"} the reader has read</summary>`;
     for (const e of ev) {
       html += '<div class="vsource">';
-      html += `<div class="sid">${esc(e.chapter_label)} · ${esc(e.chunk_id)}</div>`;
+      html += `<div class="sid">${esc(e.chapter_label)} - ${esc(e.chunk_id)}</div>`;
       html += `<div class="stext">${esc(e.text)}</div>`;
       html += "</div>";
     }
@@ -332,7 +455,7 @@ function renderValidation(v) {
 }
 
 async function ask(intention) {
-  if (!selectedText) return;
+  if (!selectedText || !appConfig) return;
   const answer = $("answer");
   document.querySelectorAll(".acts button").forEach((b) => (b.disabled = true));
   startSpinner();
@@ -344,6 +467,7 @@ async function ask(intention) {
         selected_text: selectedText,
         intention,
         reader_position: parseInt($("pos").value, 10),
+        document_id: appConfig.document_id,
       }),
     });
     const data = await res.json();
@@ -354,9 +478,9 @@ async function ask(intention) {
     answer.querySelector(".tag").textContent = intention;
     const md = answer.querySelector(".md");
     if (intention === "define") {
-      renderDefinitions(md, data.answer);          // structured JSON -> word list
+      renderDefinitions(md, data.answer);
     } else if (window.marked) {
-      md.innerHTML = marked.parse(data.answer);    // prose -> markdown
+      md.innerHTML = marked.parse(data.answer);
     } else {
       md.textContent = data.answer;
     }
@@ -369,18 +493,252 @@ async function ask(intention) {
   }
 }
 
-// Only capture selections made inside the book text.
-$("book").addEventListener("mouseup", () => {
-  const s = window.getSelection().toString();
-  if (s.trim()) setSelection(s);
-});
+async function ensurePdfLoaded() {
+  $("pdfEmpty").hidden = appConfig?.source === "pdf";
+  $("pdfPages").hidden = appConfig?.source !== "pdf";
+  if (appConfig?.source !== "pdf") return false;
+  if (pdfDoc) return true;
+  if (!window.pdfjsLib) throw new Error("PDF.js could not be loaded.");
+  updatePdfToolbar();
+  pdfDoc = await pdfjsLib.getDocument("/document/pdf").promise;
+  updatePdfToolbar();
+  return true;
+}
+
+function maxPdfPage() {
+  if (!pdfDoc) return 1;
+  const readingPosition = parseInt($("pos").value, 10) || 1;
+  const configuredMax = appConfig?.max_position || pdfDoc.numPages;
+  return Math.min(readingPosition, configuredMax, pdfDoc.numPages);
+}
+
+function updatePdfToolbar() {
+  const isPdf = appConfig?.source === "pdf";
+  $("pdfToolbar").hidden = !isPdf;
+  if (!isPdf) return;
+
+  const maxPage = pdfDoc ? maxPdfPage() : (appConfig?.max_position || 1);
+  currentPdfPage = Math.max(1, Math.min(currentPdfPage, maxPage));
+  $("pdfPage").max = String(maxPage);
+  $("pdfPage").value = String(currentPdfPage);
+  $("pdfPageCount").textContent = `of ${maxPage}`;
+  $("pdfPrev").disabled = !pdfDoc || currentPdfPage <= 1;
+  $("pdfPage").disabled = !pdfDoc;
+  $("pdfNext").disabled = !pdfDoc || currentPdfPage >= maxPage;
+  $("pdfZoom").textContent = `${Math.round(pdfZoom * 100)}%`;
+  $("pdfZoomOut").disabled = !pdfDoc || pdfZoom <= PDF_ZOOM_MIN;
+  $("pdfZoomIn").disabled = !pdfDoc || pdfZoom >= PDF_ZOOM_MAX;
+}
+
+async function goToPdfPage(page) {
+  const maxPage = maxPdfPage();
+  currentPdfPage = Math.max(1, Math.min(parseInt(page, 10) || 1, maxPage));
+  setSelection("");
+  await renderPdf();
+}
+
+async function setPdfZoom(zoom) {
+  pdfZoom = Math.max(PDF_ZOOM_MIN, Math.min(zoom, PDF_ZOOM_MAX));
+  setSelection("");
+  await renderPdf();
+}
+
+function renderTextLayerFallback(textLayer, textContent) {
+  const fallback = document.createElement("div");
+  fallback.className = "fallback-text";
+  fallback.textContent = textContent.items.map((item) => item.str).join(" ");
+  textLayer.appendChild(fallback);
+}
+
+async function renderPdf() {
+  if (activeView !== "pdf") return;
+  const hasPdf = await ensurePdfLoaded();
+  if (!hasPdf) return;
+
+  const token = ++pdfRenderToken;
+  const pages = $("pdfPages");
+  pages.innerHTML = "";
+  const pageNo = Math.max(1, Math.min(currentPdfPage, maxPdfPage()));
+  currentPdfPage = pageNo;
+  updatePdfToolbar();
+  const availableWidth = Math.max(300, Math.min(880, pages.clientWidth - 24));
+  const outputScale = Math.min(window.devicePixelRatio || 1, 2);
+
+  const page = await pdfDoc.getPage(pageNo);
+  const baseViewport = page.getViewport({ scale: 1 });
+  const fitScale = Math.min(1.5, availableWidth / baseViewport.width);
+  const scale = fitScale * pdfZoom;
+  const viewport = page.getViewport({ scale });
+
+  const pageWrap = document.createElement("div");
+  pageWrap.className = "pdf-page";
+  pageWrap.dataset.page = String(pageNo);
+
+  const sheet = document.createElement("div");
+  sheet.className = "pdf-sheet";
+  sheet.style.width = `${viewport.width}px`;
+  sheet.style.height = `${viewport.height}px`;
+
+  const canvas = document.createElement("canvas");
+  const context = canvas.getContext("2d");
+  canvas.width = Math.floor(viewport.width * outputScale);
+  canvas.height = Math.floor(viewport.height * outputScale);
+  canvas.style.width = `${viewport.width}px`;
+  canvas.style.height = `${viewport.height}px`;
+
+  const textLayer = document.createElement("div");
+  textLayer.className = "textLayer";
+  textLayer.style.width = `${viewport.width}px`;
+  textLayer.style.height = `${viewport.height}px`;
+  textLayer.style.setProperty("--scale-factor", scale);
+
+  sheet.appendChild(canvas);
+  sheet.appendChild(textLayer);
+  pageWrap.appendChild(sheet);
+
+  const label = document.createElement("div");
+  label.className = "pdf-label";
+  label.textContent = `Page ${pageNo}`;
+  pageWrap.appendChild(label);
+  pages.appendChild(pageWrap);
+
+  const transform = outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : null;
+  await page.render({ canvasContext: context, viewport, transform }).promise;
+  const textContent = await page.getTextContent();
+  if (token !== pdfRenderToken) return;
+
+  if (pdfjsLib.renderTextLayer) {
+    const task = pdfjsLib.renderTextLayer({
+      textContentSource: textContent,
+      container: textLayer,
+      viewport,
+      textDivs: [],
+      enhanceTextSelection: true,
+    });
+    await (task.promise || task);
+  } else {
+    renderTextLayerFallback(textLayer, textContent);
+  }
+}
+
+async function setView(view) {
+  activeView = view;
+  $("textView").hidden = view !== "text";
+  $("pdfView").hidden = view !== "pdf";
+  $("textViewBtn").classList.toggle("active", view === "text");
+  $("pdfViewBtn").classList.toggle("active", view === "pdf");
+  updatePdfToolbar();
+  setSelection("");
+  if (view === "text") {
+    await loadText();
+  } else {
+    await renderPdf();
+  }
+}
+
+async function uploadPdf(file) {
+  if (!file) return;
+  if (!file.name.toLowerCase().endsWith(".pdf") && file.type !== "application/pdf") {
+    throw new Error("Choose a PDF file.");
+  }
+  setStatus("Loading PDF...");
+  const url = "/document/pdf?filename=" + encodeURIComponent(file.name);
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/pdf" },
+    body: file,
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Could not load PDF");
+
+  if (pdfObjectUrl) URL.revokeObjectURL(pdfObjectUrl);
+  pdfObjectUrl = URL.createObjectURL(file);
+  pdfDoc = null;
+  currentPdfPage = 1;
+  pdfZoom = 1;
+  applyConfig(data);
+  if (!window.pdfjsLib) throw new Error("PDF.js could not be loaded.");
+  pdfDoc = await pdfjsLib.getDocument(pdfObjectUrl).promise;
+  await loadText();
+  await setView("pdf");
+  resetAnswer();
+  setStatus(`${file.name} loaded`);
+}
+
+async function resetDocument() {
+  setStatus("Resetting...");
+  const res = await fetch("/document/reset", { method: "POST" });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Could not reset document");
+  if (pdfObjectUrl) URL.revokeObjectURL(pdfObjectUrl);
+  pdfObjectUrl = null;
+  pdfDoc = null;
+  currentPdfPage = 1;
+  pdfZoom = 1;
+  pdfRenderToken++;
+  $("pdfPages").innerHTML = "";
+  applyConfig(data);
+  await setView("text");
+  resetAnswer();
+  setStatus("");
+}
+
+$("book").addEventListener("mouseup", () => captureSelection($("book")));
+$("book").addEventListener("keyup", () => captureSelection($("book")));
+$("pdfPages").addEventListener("mouseup", () => captureSelection($("pdfPages")));
+$("pdfPages").addEventListener("keyup", () => captureSelection($("pdfPages")));
+
 $("pos").addEventListener("input", () => { $("posVal").textContent = $("pos").value; });
-$("pos").addEventListener("change", () => { setSelection(""); loadBook(); });
+$("pos").addEventListener("change", async () => {
+  setSelection("");
+  if (activeView === "pdf") await goToPdfPage(currentPdfPage);
+  else await loadText();
+});
+
+$("pdfPrev").addEventListener("click", () => goToPdfPage(currentPdfPage - 1).catch((e) => setStatus(e.message, true)));
+$("pdfNext").addEventListener("click", () => goToPdfPage(currentPdfPage + 1).catch((e) => setStatus(e.message, true)));
+$("pdfPage").addEventListener("change", () => goToPdfPage($("pdfPage").value).catch((e) => setStatus(e.message, true)));
+$("pdfPage").addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    goToPdfPage($("pdfPage").value).catch((e) => setStatus(e.message, true));
+  }
+});
+$("pdfZoomOut").addEventListener("click", () => setPdfZoom(pdfZoom - PDF_ZOOM_STEP).catch((e) => setStatus(e.message, true)));
+$("pdfZoomIn").addEventListener("click", () => setPdfZoom(pdfZoom + PDF_ZOOM_STEP).catch((e) => setStatus(e.message, true)));
+
+$("textViewBtn").addEventListener("click", () => setView("text").catch((e) => setStatus(e.message, true)));
+$("pdfViewBtn").addEventListener("click", () => setView("pdf").catch((e) => setStatus(e.message, true)));
+$("pdfFile").addEventListener("change", async (event) => {
+  const file = event.target.files && event.target.files[0];
+  try {
+    await uploadPdf(file);
+  } catch (e) {
+    setStatus(e.message, true);
+  } finally {
+    event.target.value = "";
+  }
+});
+$("resetDoc").addEventListener("click", () => resetDocument().catch((e) => setStatus(e.message, true)));
 document.querySelectorAll(".acts button").forEach((b) =>
   b.addEventListener("click", () => ask(b.dataset.intent))
 );
 
-(async () => { await loadConfig(); await loadBook(); })();
+window.addEventListener("resize", () => {
+  if (activeView !== "pdf" || !pdfDoc) return;
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => renderPdf().catch((e) => setStatus(e.message, true)), 180);
+});
+
+(async () => {
+  try {
+    await refreshConfig();
+    await loadText();
+    if (appConfig.source === "pdf") await ensurePdfLoaded();
+  } catch (e) {
+    setStatus(e.message, true);
+  }
+})();
 </script>
 </body>
 </html>
