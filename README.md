@@ -9,6 +9,41 @@ Course project: an AI reading assistant that supports text comprehension with
 on-demand, context-grounded help — without spoiling what the reader hasn't reached.
 See `report.md` for the full write-up.
 
+## TL;DR — run the demo for the first time
+
+From the repository root on an Apple Silicon Mac, run these commands in order.
+You need Conda, internet access, and an Anthropic API key:
+
+```bash
+# 1. Create the Python environment and install all dependencies.
+CONDA_SUBDIR=osx-arm64 conda create -y -n antispoiler-arm python=3.11
+conda run -n antispoiler-arm conda config --env --set subdir osx-arm64
+conda run --no-capture-output -n antispoiler-arm \
+  python -m pip install -r requirements.txt
+
+# 2. Install the dictionary data used by the Define validator.
+conda run --no-capture-output -n antispoiler-arm \
+  python -m nltk.downloader wordnet omw-1.4
+
+# 3. Enter your Anthropic API key without saving it in shell history.
+read -s "ANTHROPIC_API_KEY?Anthropic API key: "
+echo
+export ANTHROPIC_API_KEY
+
+# 4. Start the demo with live startup output.
+conda run --no-capture-output -n antispoiler-arm \
+  python -u -m uvicorn app:app --host 127.0.0.1 --port 8000
+```
+
+The first startup downloads the example book and embedding model, then builds an
+index, so it can take several minutes. Keep the terminal open and wait for
+`Application startup complete`. Then open
+[http://127.0.0.1:8000](http://127.0.0.1:8000). Stop the server with `Ctrl+C`.
+
+The API key entered above lasts only for the current terminal session. To keep it
+for future runs, create a git-ignored `.env` file in the repository root containing
+`ANTHROPIC_API_KEY=your-key`.
+
 ## Repository structure
 
 ```
@@ -49,16 +84,27 @@ uses page number as the reader-position axis. Needs `ANTHROPIC_API_KEY` in the
 repo-root `.env`.
 
 ```bash
-conda run -n antispoiler-arm uvicorn app:app --port 8000
-# then open http://127.0.0.1:8000
+conda run --no-capture-output -n antispoiler-arm \
+  python -u -m uvicorn app:app --host 127.0.0.1 --port 8000
+# wait for "Application startup complete", then open http://127.0.0.1:8000
 ```
 
 Launch from the same env you installed into (`antispoiler-arm`) — running from a
 different Python is the usual cause of the `Dictionary: UNAVAILABLE` message below.
-The first request is slow (it downloads the embedding model and indexes the book
-once); opening a PDF also builds a temporary index for that document. The Define
-feature needs the WordNet corpus (next section). Scanned/OCR-only PDFs are not
-supported in this demo because the backend requires extractable text.
+The first startup is slow: before the server starts listening, it downloads the
+book and embedding model and builds the book index once. Internet access is
+therefore required. `--no-capture-output` and `python -u` make that startup
+progress visible instead of making the command appear to hang. Opening a PDF also
+builds a temporary index for that document. The Define feature needs the WordNet
+corpus (next section). Scanned/OCR-only PDFs are not supported in this demo because
+the backend requires extractable text.
+
+If you prefer to activate the environment first, use:
+
+```bash
+conda activate antispoiler-arm
+python -u -m uvicorn app:app --host 127.0.0.1 --port 8000
+```
 
 ### Dev mode — cheap models via OpenRouter
 
@@ -68,7 +114,8 @@ generator and the validator through a single cheap model on
 `OPENROUTER_API_KEY` to the repo-root `.env`, then:
 
 ```bash
-APP_MODE=dev conda run -n antispoiler-arm uvicorn app:app --port 8000
+APP_MODE=dev conda run --no-capture-output -n antispoiler-arm \
+  python -u -m uvicorn app:app --host 127.0.0.1 --port 8000
 ```
 
 The startup banner shows the active mode:
