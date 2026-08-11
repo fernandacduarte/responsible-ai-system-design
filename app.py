@@ -27,14 +27,20 @@ import re
 import uuid
 from dataclasses import dataclass
 from io import BytesIO
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import FastAPI, Query, Request
 from fastapi.responses import FileResponse, JSONResponse, Response
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from antispoiler import config
 from antispoiler.book import Chunk, fetch_and_chunk
+from antispoiler.discuss import (
+    MAX_HISTORY_MESSAGES,
+    MAX_MESSAGE_CHARS,
+    MAX_ORIGINAL_ANSWER_CHARS,
+    discuss_response,
+)
 from antispoiler.index import build_index
 from antispoiler.llm_client import LLMClient, make_validator
 from antispoiler.respond import INTENTIONS, respond_with_evidence
@@ -273,6 +279,21 @@ class RespondRequest(BaseModel):
     document_id: str | None = None
 
 
+class ConversationMessage(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str
+
+
+class FollowUpRequest(BaseModel):
+    selected_text: str
+    intention: str
+    original_answer: str
+    validation: dict[str, Any] | None = None
+    messages: list[ConversationMessage] = Field(default_factory=list)
+    reader_position: int
+    document_id: str | None = None
+
+
 @app.get("/")
 def home():
     return FileResponse(os.path.join(_STATIC, "index.html"))
@@ -396,4 +417,65 @@ def do_respond(req: RespondRequest):
         "reader_position": pos,
         "document_id": doc.document_id,
         "validation": validation,
+    }
+
+
+@app.post("/follow-up")
+def do_follow_up(req: FollowUpRequest):
+    """Continue a discussion about one response, under its original spoiler bound."""
+    doc = ACTIVE_DOC
+    if req.document_id and req.document_id != doc.document_id:
+        return _json_error(
+            "The active document changed. Start a new discussion from the current response.",
+            409,
+        )
+    if req.intention not in INTENTIONS:
+        return _json_error(
+            f"Unknown intention {req.intention!r}; expected one of {INTENTIONS}.", 400
+        )
+    if not req.selected_text.strip():
+        return _json_error("The original selected text is missing.", 400)
+    if not req.original_answer.strip():
+        return _json_error("The original response is missing.", 400)
+    if len(req.original_answer) > MAX_ORIGINAL_ANSWER_CHARS:
+        return _json_error("The original response is too long to discuss.", 400)
+    if not req.messages or req.messages[-1].role != "user":
+        return _json_error("Ask a follow-up question first.", 400)
+    if len(req.messages) > MAX_HISTORY_MESSAGES:
+        return _json_error("This discussion is too long. Start a new discussion.", 400)
+    if any(not m.content.strip() or len(m.content) > MAX_MESSAGE_CHARS for m in req.messages):
+        return _json_error(
+            f"Each conversation message must contain 1-{MAX_MESSAGE_CHARS} characters.",
+            400,
+        )
+
+    pos = max(1, min(int(req.reader_position), doc.max_position))
+    try:
+        answer = discuss_response(
+            LLM,
+            doc.index,
+            selected_text=req.selected_text.strip(),
+            intention=req.intention,
+            original_answer=req.original_answer,
+            validation=req.validation,
+            messages=[
+                m.model_dump() if hasattr(m, "model_dump") else m.dict()
+                for m in req.messages
+            ],
+            reader_position=pos,
+            title=doc.title,
+            author=doc.author,
+        )
+    except ValueError as e:
+        return _json_error(str(e), 400)
+    except Exception as e:
+        print(f"[follow-up] failed: {type(e).__name__}: {e}")
+        return _json_error(
+            f"The assistant couldn't answer this follow-up ({type(e).__name__}).", 502
+        )
+
+    return {
+        "answer": answer,
+        "reader_position": pos,
+        "document_id": doc.document_id,
     }

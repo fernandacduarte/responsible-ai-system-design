@@ -78,7 +78,11 @@ details in `antispoiler/README.md`.
 The demo (`app.py` + `static/index.html`) is the reading assistant UI: select a
 passage, click a feature (Define / Paraphrase / Contextualize / Recall), and the
 generated answer is run through the LLM-3 validator and shown as Valid / Hedged /
-Not reliable. The reader pane can switch between the extracted text view and a
+Not reliable. Afterward, **Discuss this response** opens a focused follow-up
+conversation that retains the selection, feature, original answer, and validator
+feedback. Follow-ups retrieve fresh evidence under the original reader-position
+bound, so the conversation remains anti-spoiler even when it continues for
+several turns. The reader pane can switch between the extracted text view and a
 PDF view; opening a local PDF makes that PDF the active in-memory document and
 uses page number as the reader-position axis. Needs `ANTHROPIC_API_KEY` in the
 repo-root `.env`.

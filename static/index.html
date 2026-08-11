@@ -78,8 +78,10 @@
   }
 
   #panel { width:400px; min-width:400px; border-left:1px solid var(--line); background:var(--panel);
-           display:flex; flex-direction:column; padding:24px; overflow-y:auto; font-family:system-ui, sans-serif; }
-  #panel h2 { font-size:13px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin:0 0 8px; }
+           overflow:hidden; font-family:system-ui, sans-serif; }
+  .panel-view { height:100%; min-height:0; }
+  .result-view { overflow-y:auto; padding:24px; }
+  .result-view h2 { font-size:13px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin:0 0 8px; }
   .pos { margin-bottom:20px; }
   .pos input[type=range] { width:100%; }
   .pos .val { font-weight:600; }
@@ -111,6 +113,89 @@
   .answer .md .defs dt:first-child { margin-top:0; }
   .answer .md .defs dd { margin:0; color:var(--ink-soft, var(--ink)); }
   .muted { color:var(--muted); }
+
+  .response-stale { margin-top:14px; padding:9px 11px; border:1px solid var(--hedge-line);
+                    border-radius:8px; background:var(--hedge-bg); color:var(--hedge);
+                    font-size:12.5px; line-height:1.45; }
+  .discussion-launcher { margin-top:16px; padding-top:14px; border-top:1px solid var(--line); }
+  .discussion-launcher button { width:100%; display:flex; align-items:center; gap:11px; padding:11px 12px;
+                                border:1px solid var(--accent); border-radius:9px; background:#fff;
+                                color:var(--accent); font-family:inherit; text-align:left; cursor:pointer; }
+  .discussion-launcher button:hover { background:#f3f7fa; }
+  .discussion-launcher button:disabled { opacity:.55; cursor:not-allowed; }
+  .discussion-icon { width:25px; height:25px; display:grid; place-items:center; flex:none;
+                     border-radius:50%; background:#eef2f5; font-size:14px; }
+  .discussion-launcher strong, .discussion-launcher small { display:block; }
+  .discussion-launcher strong { font-size:13.5px; }
+  .discussion-launcher small { margin-top:2px; color:var(--muted); font-size:11.5px; font-weight:400; }
+
+  .discussion-view { display:flex; flex-direction:column; background:var(--panel); }
+  .discussion-head { display:flex; align-items:center; gap:11px; padding:17px 18px 14px;
+                     border-bottom:1px solid var(--line); flex:none; }
+  .discussion-back { width:34px; height:34px; padding:0; display:grid; place-items:center;
+                     border:1px solid var(--line); border-radius:50%; background:#fff;
+                     color:var(--ink); font:700 17px/1 system-ui, sans-serif; cursor:pointer; }
+  .discussion-head .overline { color:var(--muted); font-size:10px; font-weight:700;
+                               letter-spacing:.12em; text-transform:uppercase; }
+  .discussion-head h2 { margin:2px 0 0; color:var(--ink); font-size:16px; font-weight:650;
+                        letter-spacing:0; text-transform:none; }
+  .discussion-context { flex:none; }
+  .discussion-context-toggle { width:100%; display:flex; align-items:center; justify-content:space-between;
+                               gap:12px; padding:13px 18px; border:0; border-bottom:1px solid var(--line);
+                               background:#fbfaf7; color:var(--ink); text-align:left; font-family:inherit;
+                               cursor:pointer; }
+  .discussion-context-title, .discussion-context-subtitle { display:block; }
+  .discussion-context-title { font-size:12.5px; font-weight:650; }
+  .discussion-context-subtitle { margin-top:2px; color:var(--muted); font-size:11px; }
+  .discussion-context-summary { min-width:0; }
+  .discussion-chevron { color:var(--muted); flex:none; transition:transform .15s ease; }
+  .discussion-context-toggle[aria-expanded=true] .discussion-chevron { transform:rotate(180deg); }
+  .discussion-context-detail { padding:12px 18px 14px; border-bottom:1px solid var(--line);
+                               background:#fbfaf7; font-size:12px; line-height:1.5; }
+  .context-label { margin:8px 0 3px; color:var(--muted); font-size:9.5px; font-weight:700;
+                   letter-spacing:.09em; text-transform:uppercase; }
+  .context-label:first-child { margin-top:0; }
+  .context-value { max-height:96px; overflow:auto; white-space:pre-wrap; overflow-wrap:anywhere; }
+  .context-validation { display:inline-flex; align-items:center; gap:6px; margin-top:3px; padding:3px 7px;
+                        border-radius:6px; background:var(--unv-bg); color:var(--unv); font-size:10.5px;
+                        font-weight:700; text-transform:uppercase; letter-spacing:.03em; }
+  .context-validation::before { content:""; width:7px; height:7px; border-radius:50%; background:currentColor; }
+  .context-validation.v-valid { background:var(--valid-bg); color:var(--valid); }
+  .context-validation.v-hedge { background:var(--hedge-bg); color:var(--hedge); }
+  .context-validation.v-bad { background:var(--bad-bg); color:var(--bad); }
+
+  .discussion-thread { flex:1; min-height:0; overflow-y:auto; display:flex; flex-direction:column;
+                       align-items:flex-start; gap:11px; padding:18px; }
+  .chat-message { max-width:88%; padding:9px 11px; border-radius:12px; font-size:13.5px;
+                  line-height:1.5; overflow-wrap:anywhere; }
+  .chat-message.assistant { background:#eef2f5; color:var(--ink); border-bottom-left-radius:4px; }
+  .chat-message.user { align-self:flex-end; background:var(--accent); color:#fff; border-bottom-right-radius:4px; }
+  .chat-message.error { background:var(--bad-bg); color:var(--bad); }
+  .chat-message .md > :first-child { margin-top:0; }
+  .chat-message .md > :last-child { margin-bottom:0; }
+  .chat-message .md p { margin:0 0 8px; }
+  .chat-message .md ul, .chat-message .md ol { margin:5px 0 8px; padding-left:18px; }
+  .chat-thinking { display:flex; align-items:center; gap:8px; color:var(--muted); }
+  .chat-thinking .spinner { width:13px; height:13px; }
+  .discussion-suggestions { display:flex; flex-wrap:wrap; gap:7px; }
+  .discussion-suggestions button { padding:7px 9px; border:1px solid var(--line); border-radius:15px;
+                                   background:#fff; color:var(--accent); font:600 11.5px system-ui, sans-serif;
+                                   cursor:pointer; }
+  .discussion-suggestions button:hover { border-color:var(--accent); background:#f3f7fa; }
+
+  .discussion-composer { flex:none; display:grid; grid-template-columns:1fr auto; gap:8px; align-items:end;
+                         padding:12px 14px 15px; border-top:1px solid var(--line); background:var(--panel); }
+  .discussion-composer textarea { width:100%; min-height:47px; max-height:120px; resize:none; padding:10px 11px;
+                                  border:1px solid var(--line); border-radius:9px; background:#fff; color:var(--ink);
+                                  font:13px/1.4 system-ui, sans-serif; }
+  .discussion-composer textarea:focus { outline:2px solid rgba(91,124,153,.25); border-color:var(--accent); }
+  .discussion-send { width:40px; height:40px; padding:0; display:grid; place-items:center; border:0;
+                     border-radius:50%; background:var(--accent); color:#fff; font:700 17px/1 system-ui, sans-serif;
+                     cursor:pointer; }
+  .discussion-send.stop { background:var(--bad); font-size:12px; }
+  .discussion-limit { grid-column:1 / -1; margin:0; color:var(--muted); font-size:10.5px; }
+  .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden;
+             clip:rect(0,0,0,0); white-space:nowrap; border:0; }
 
   .thinking { display:flex; align-items:center; gap:10px; color:var(--muted); font-size:14px; }
   .spinner { width:16px; height:16px; border:2px solid #d9d2c4; border-top-color:var(--accent);
@@ -219,6 +304,7 @@
   </main>
 
   <aside id="panel">
+    <section class="panel-view result-view" id="resultView">
     <div class="pos">
       <h2>Reading position</h2>
       <div>Through <span id="posUnit">chapter</span> <span class="val" id="posVal">-</span> <span class="muted" id="posMax"></span></div>
@@ -238,6 +324,53 @@
     </div>
 
     <div class="answer" id="answer"><span class="muted">The assistant's reply will appear here.</span></div>
+    <div class="response-stale" id="responseStale" hidden>
+      This response belongs to the previous selection. Choose a feature to generate a new response, or continue its existing discussion.
+    </div>
+    <div class="discussion-launcher" id="discussionLauncher" hidden>
+      <button type="button" id="openDiscussion">
+        <span class="discussion-icon" aria-hidden="true">↗</span>
+        <span><strong>Discuss this response</strong><small>Ask a question or explore it further</small></span>
+      </button>
+    </div>
+    </section>
+
+    <section class="panel-view discussion-view" id="discussionView" hidden>
+      <header class="discussion-head">
+        <button type="button" class="discussion-back" id="closeDiscussion" aria-label="Back to response">←</button>
+        <div>
+          <div class="overline">Follow-up</div>
+          <h2>Discuss this response</h2>
+        </div>
+      </header>
+
+      <div class="discussion-context">
+        <button type="button" class="discussion-context-toggle" id="discussionContextToggle" aria-expanded="false">
+          <span class="discussion-context-summary">
+            <span class="discussion-context-title" id="discussionContextTitle">Response context</span>
+            <span class="discussion-context-subtitle" id="discussionContextSubtitle"></span>
+          </span>
+          <span class="discussion-chevron" aria-hidden="true">⌄</span>
+        </button>
+        <div class="discussion-context-detail" id="discussionContextDetail" hidden>
+          <div class="context-label">Selected text</div>
+          <div class="context-value" id="discussionSelectedText"></div>
+          <div class="context-label">Original response</div>
+          <div class="context-value" id="discussionOriginalAnswer"></div>
+          <div class="context-label">Answer validator</div>
+          <div class="context-validation" id="discussionValidation">Not available</div>
+        </div>
+      </div>
+
+      <div class="discussion-thread" id="discussionThread" aria-live="polite"></div>
+
+      <form class="discussion-composer" id="discussionComposer">
+        <label class="sr-only" for="discussionInput">Ask a follow-up question</label>
+        <textarea id="discussionInput" rows="2" maxlength="4000" placeholder="Ask a follow-up…"></textarea>
+        <button type="submit" class="discussion-send" id="discussionSend" aria-label="Send follow-up">↑</button>
+        <p class="discussion-limit" id="discussionLimit" hidden>This discussion has reached its message limit. Start a new response to continue.</p>
+      </form>
+    </section>
   </aside>
 </div>
 
@@ -257,9 +390,15 @@ let pdfRenderToken = 0;
 let resizeTimer = null;
 let currentPdfPage = 1;
 let pdfZoom = 1;
+let currentResponseContext = null;
+let conversationMessages = [];
+let discussionController = null;
+let discussionPending = false;
+let discussionVersion = 0;
 const PDF_ZOOM_MIN = 0.5;
 const PDF_ZOOM_MAX = 2;
 const PDF_ZOOM_STEP = 0.25;
+const MAX_DISCUSSION_MESSAGES = 20;
 
 if (window.pdfjsLib) {
   pdfjsLib.GlobalWorkerOptions.workerSrc =
@@ -288,7 +427,12 @@ function setStatus(message, isError = false) {
 }
 
 function resetAnswer() {
+  resetDiscussionState();
+  currentResponseContext = null;
   $("answer").innerHTML = '<span class="muted">The assistant\'s reply will appear here.</span>';
+  $("discussionLauncher").hidden = true;
+  $("responseStale").hidden = true;
+  closeDiscussionView();
 }
 
 function renderDefinitions(el, answerJson) {
@@ -367,6 +511,14 @@ function setSelection(text) {
   sel.textContent = has ? selectedText : "Highlight a word or passage in the text...";
   sel.classList.toggle("empty", !has);
   document.querySelectorAll(".acts button").forEach((b) => (b.disabled = !has));
+  updateResponseStaleness();
+}
+
+function updateResponseStaleness() {
+  const stale = Boolean(
+    currentResponseContext && selectedText !== currentResponseContext.selectedText
+  );
+  $("responseStale").hidden = !stale;
 }
 
 function captureSelection(container) {
@@ -388,6 +540,8 @@ function startSpinner() {
   ];
   let i = 0;
   const answer = $("answer");
+  $("discussionLauncher").hidden = true;
+  $("responseStale").hidden = true;
   const paint = () =>
     (answer.innerHTML = '<div class="thinking"><span class="spinner"></span><span>' + esc(msgs[i]) + "</span></div>");
   paint();
@@ -457,6 +611,10 @@ function renderValidation(v) {
 async function ask(intention) {
   if (!selectedText || !appConfig) return;
   const answer = $("answer");
+  const requestSelection = selectedText;
+  resetDiscussionState();
+  currentResponseContext = null;
+  closeDiscussionView();
   document.querySelectorAll(".acts button").forEach((b) => (b.disabled = true));
   startSpinner();
   try {
@@ -464,7 +622,7 @@ async function ask(intention) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        selected_text: selectedText,
+        selected_text: requestSelection,
         intention,
         reader_position: parseInt($("pos").value, 10),
         document_id: appConfig.document_id,
@@ -485,11 +643,268 @@ async function ask(intention) {
       md.textContent = data.answer;
     }
     answer.querySelector(".vhost").innerHTML = renderValidation(data.validation);
+    currentResponseContext = {
+      documentId: data.document_id || appConfig.document_id,
+      selectedText: requestSelection,
+      intention,
+      originalAnswer: data.answer,
+      validation: compactValidation(data.validation),
+      readerPosition: data.reader_position,
+    };
+    resetDiscussionState();
+    $("discussionLauncher").hidden = false;
+    updateResponseStaleness();
   } catch (e) {
     stopSpinner();
     answer.innerHTML = '<span class="muted">Error: ' + esc(e.message) + "</span>";
+    $("discussionLauncher").hidden = true;
   } finally {
     document.querySelectorAll(".acts button").forEach((b) => (b.disabled = !selectedText));
+  }
+}
+
+function validationState(validation) {
+  if (!validation || !validation.enabled) {
+    return { label: "Not available", className: "" };
+  }
+  return {
+    label: validation.banner || validation.ui_state || "Unknown",
+    className: VBANNER[validation.ui_state] || "",
+  };
+}
+
+function compactValidation(validation) {
+  if (!validation) return null;
+  return {
+    enabled: Boolean(validation.enabled),
+    reason: validation.reason || null,
+    note: validation.note || null,
+    ui_state: validation.ui_state || null,
+    banner: validation.banner || null,
+    message: validation.message || null,
+    n_claims: validation.n_claims || 0,
+    claims: (validation.claims || []).slice(0, 8).map((claim) => ({
+      verdict: claim.verdict || null,
+      claim: claim.claim || null,
+      reason: claim.reason || null,
+    })),
+  };
+}
+
+function resetDiscussionState() {
+  discussionVersion++;
+  if (discussionController) discussionController.abort();
+  discussionController = null;
+  discussionPending = false;
+  conversationMessages = [];
+  const thread = $("discussionThread");
+  if (!thread) return;
+  thread.innerHTML = "";
+  const hasWarning = currentResponseContext?.validation?.ui_state === "Not reliable";
+  appendChatMessage(
+    "assistant",
+    hasWarning
+      ? "The original answer has a validation warning. I’ll use the available passage to qualify or correct it. What would you like to explore?"
+      : "What would you like to explore about this response?"
+  );
+
+  const suggestions = document.createElement("div");
+  suggestions.className = "discussion-suggestions";
+  suggestions.id = "discussionSuggestions";
+  const items = discussionSuggestionItems(currentResponseContext?.intention);
+  for (const [label, prompt] of items) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = label;
+    button.dataset.prompt = prompt;
+    suggestions.appendChild(button);
+  }
+  thread.appendChild(suggestions);
+  $("discussionInput").value = "";
+  $("discussionInput").disabled = false;
+  $("discussionSend").disabled = false;
+  $("discussionLimit").hidden = true;
+  setDiscussionPending(false);
+}
+
+function discussionSuggestionItems(intention) {
+  const suggestions = {
+    define: [
+      ["Why is it important here?", "Why is that meaning important in this passage?"],
+      ["Give me a simpler example", "Can you give me a simpler example?"],
+    ],
+    paraphrase: [
+      ["Explain one phrase", "Can you explain the hardest phrase in that paraphrase?"],
+      ["Make it even simpler", "Can you restate it even more simply?"],
+    ],
+    contextualize: [
+      ["Why does this context matter?", "Why does this context matter for the selected passage?"],
+      ["What background is essential?", "What is the most important background for understanding this?"],
+    ],
+    recall: [
+      ["What was the first mention?", "What was the earliest relevant mention in what I have read?"],
+      ["Summarize it briefly", "Can you summarize what I should remember in two sentences?"],
+    ],
+  };
+  return suggestions[intention] || suggestions.define;
+}
+
+function populateDiscussionContext() {
+  if (!currentResponseContext) return;
+  const ctx = currentResponseContext;
+  const intention = ctx.intention.charAt(0).toUpperCase() + ctx.intention.slice(1);
+  $("discussionContextTitle").textContent = `${intention}: “${ctx.selectedText.slice(0, 54)}${ctx.selectedText.length > 54 ? "…" : ""}”`;
+  const state = validationState(ctx.validation);
+  $("discussionContextSubtitle").textContent = `Original response · ${state.label.toLowerCase()}`;
+  $("discussionSelectedText").textContent = ctx.selectedText;
+  $("discussionOriginalAnswer").textContent = responseTextForContext(ctx);
+  const validation = $("discussionValidation");
+  validation.textContent = state.label;
+  validation.className = `context-validation ${state.className}`.trim();
+}
+
+function responseTextForContext(ctx) {
+  if (ctx.intention !== "define") return ctx.originalAnswer;
+  try {
+    const parsed = JSON.parse(ctx.originalAnswer);
+    const parts = [];
+    if (parsed.meaning) parts.push(parsed.meaning);
+    for (const item of (parsed.definitions || [])) {
+      if (item.word && item.definition) parts.push(`${item.word} — ${item.definition}`);
+    }
+    return parts.join("\n") || ctx.originalAnswer;
+  } catch (e) {
+    return ctx.originalAnswer;
+  }
+}
+
+function openDiscussionView() {
+  if (!currentResponseContext) return;
+  populateDiscussionContext();
+  $("resultView").hidden = true;
+  $("discussionView").hidden = false;
+  requestAnimationFrame(() => $("discussionInput").focus());
+}
+
+function closeDiscussionView() {
+  const resultView = $("resultView");
+  const discussionView = $("discussionView");
+  if (!resultView || !discussionView) return;
+  discussionView.hidden = true;
+  resultView.hidden = false;
+}
+
+function appendChatMessage(role, text, extraClass = "") {
+  const message = document.createElement("div");
+  message.className = `chat-message ${role} ${extraClass}`.trim();
+  if (role === "assistant" && window.marked && !extraClass) {
+    const md = document.createElement("div");
+    md.className = "md";
+    md.innerHTML = marked.parse(esc(text));
+    message.appendChild(md);
+  } else {
+    message.textContent = text;
+  }
+  $("discussionThread").appendChild(message);
+  return message;
+}
+
+function scrollDiscussionToBottom(force = false) {
+  const thread = $("discussionThread");
+  const nearBottom = thread.scrollHeight - thread.scrollTop - thread.clientHeight < 72;
+  if (force || nearBottom) thread.scrollTop = thread.scrollHeight;
+}
+
+function setDiscussionPending(pending) {
+  discussionPending = pending;
+  const input = $("discussionInput");
+  const send = $("discussionSend");
+  if (!input || !send) return;
+  input.disabled = pending;
+  send.classList.toggle("stop", pending);
+  send.textContent = pending ? "■" : "↑";
+  send.setAttribute("aria-label", pending ? "Stop generating" : "Send follow-up");
+  const suggestions = $("discussionSuggestions");
+  if (suggestions) {
+    suggestions.querySelectorAll("button").forEach((button) => (button.disabled = pending));
+  }
+}
+
+function updateDiscussionLimit() {
+  const atLimit = conversationMessages.length >= MAX_DISCUSSION_MESSAGES;
+  $("discussionLimit").hidden = !atLimit;
+  $("discussionInput").disabled = atLimit || discussionPending;
+  $("discussionSend").disabled = atLimit;
+}
+
+async function sendFollowUp() {
+  if (discussionPending) {
+    if (discussionController) discussionController.abort();
+    return;
+  }
+  if (!currentResponseContext || conversationMessages.length >= MAX_DISCUSSION_MESSAGES) return;
+
+  const input = $("discussionInput");
+  const question = input.value.trim();
+  if (!question) return;
+  const suggestions = $("discussionSuggestions");
+  if (suggestions) suggestions.hidden = true;
+
+  conversationMessages.push({ role: "user", content: question });
+  appendChatMessage("user", question);
+  input.value = "";
+  scrollDiscussionToBottom(true);
+
+  const loading = appendChatMessage("assistant", "", "loading");
+  loading.innerHTML = '<span class="chat-thinking"><span class="spinner"></span><span>Thinking…</span></span>';
+  scrollDiscussionToBottom(true);
+
+  discussionController = new AbortController();
+  const requestVersion = discussionVersion;
+  setDiscussionPending(true);
+  try {
+    const ctx = currentResponseContext;
+    const res = await fetch("/follow-up", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      signal: discussionController.signal,
+      body: JSON.stringify({
+        selected_text: ctx.selectedText,
+        intention: ctx.intention,
+        original_answer: ctx.originalAnswer,
+        validation: ctx.validation,
+        messages: conversationMessages,
+        reader_position: ctx.readerPosition,
+        document_id: ctx.documentId,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Follow-up request failed");
+    if (requestVersion !== discussionVersion) return;
+    loading.remove();
+    conversationMessages.push({ role: "assistant", content: data.answer });
+    appendChatMessage("assistant", data.answer);
+    scrollDiscussionToBottom();
+  } catch (e) {
+    loading.remove();
+    if (requestVersion !== discussionVersion) return;
+    if (e.name === "AbortError") {
+      const stopped = "Response stopped before completion.";
+      conversationMessages.push({ role: "assistant", content: stopped });
+      appendChatMessage("assistant", stopped, "error");
+    } else {
+      const failed = `I couldn’t answer that follow-up. ${e.message}`;
+      conversationMessages.push({ role: "assistant", content: failed });
+      appendChatMessage("assistant", failed, "error");
+    }
+    scrollDiscussionToBottom();
+  } finally {
+    if (requestVersion === discussionVersion) {
+      discussionController = null;
+      setDiscussionPending(false);
+      updateDiscussionLimit();
+      if (!$("discussionInput").disabled) $("discussionInput").focus();
+    }
   }
 }
 
@@ -723,6 +1138,31 @@ $("resetDoc").addEventListener("click", () => resetDocument().catch((e) => setSt
 document.querySelectorAll(".acts button").forEach((b) =>
   b.addEventListener("click", () => ask(b.dataset.intent))
 );
+
+$("openDiscussion").addEventListener("click", openDiscussionView);
+$("closeDiscussion").addEventListener("click", closeDiscussionView);
+$("discussionContextToggle").addEventListener("click", () => {
+  const toggle = $("discussionContextToggle");
+  const expanded = toggle.getAttribute("aria-expanded") === "true";
+  toggle.setAttribute("aria-expanded", String(!expanded));
+  $("discussionContextDetail").hidden = expanded;
+});
+$("discussionThread").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-prompt]");
+  if (!button || discussionPending) return;
+  $("discussionInput").value = button.dataset.prompt;
+  $("discussionInput").focus();
+});
+$("discussionComposer").addEventListener("submit", (event) => {
+  event.preventDefault();
+  sendFollowUp();
+});
+$("discussionInput").addEventListener("keydown", (event) => {
+  if (event.key === "Enter" && !event.shiftKey) {
+    event.preventDefault();
+    $("discussionComposer").requestSubmit();
+  }
+});
 
 window.addEventListener("resize", () => {
   if (activeView !== "pdf" || !pdfDoc) return;
